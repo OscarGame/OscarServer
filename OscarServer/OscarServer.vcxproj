@@ -142,6 +142,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="SourceCode\3rd\crypt\base64_encoder.c" />
+    <ClCompile Include="SourceCode\3rd\crypt\sha1.c" />
+    <ClCompile Include="SourceCode\3rd\http_parser\http_parser.c" />
+    <ClCompile Include="SourceCode\main.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SourceCode\3rd\crypt\base64_encoder.h" />
+    <ClInclude Include="SourceCode\3rd\crypt\sha1.h" />
+    <ClInclude Include="SourceCode\3rd\http_parser\http_parser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
