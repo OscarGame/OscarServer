@@ -16,14 +16,17 @@
     <Filter Include="SourceCode\3rd">
       <UniqueIdentifier>{75f0b4f0-0c7a-45dd-88ef-cff507f02316}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SourceCode\class_code">
-      <UniqueIdentifier>{ead9c52a-861d-4af4-bc9b-6bf29167613d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="SourceCode\3rd\crypt">
       <UniqueIdentifier>{19512bfa-a776-4bf6-941e-76ddc76c0811}</UniqueIdentifier>
     </Filter>
     <Filter Include="SourceCode\3rd\http_parser">
       <UniqueIdentifier>{d46d4578-0a34-4863-b288-d9a02332c497}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SourceCode\net_io">
+      <UniqueIdentifier>{ead9c52a-861d-4af4-bc9b-6bf29167613d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SourceCode\3rd\mjson">
+      <UniqueIdentifier>{2aed4e0c-6a75-4b81-bf18-56add5e15072}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -39,6 +42,18 @@
     <ClCompile Include="SourceCode\main.c">
       <Filter>SourceCode</Filter>
     </ClCompile>
+    <ClCompile Include="SourceCode\net_io\tcp_session.c">
+      <Filter>SourceCode\net_io</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\server_gateway.c">
+      <Filter>SourceCode</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\net_io\net_iocp_win.c">
+      <Filter>SourceCode\net_io</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\3rd\mjson\json.c">
+      <Filter>SourceCode\3rd\mjson</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SourceCode\3rd\crypt\base64_encoder.h">
@@ -49,6 +64,15 @@
     </ClInclude>
     <ClInclude Include="SourceCode\3rd\http_parser\http_parser.h">
       <Filter>SourceCode\3rd\http_parser</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCode\net_io\tcp_session.h">
+      <Filter>SourceCode\net_io</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCode\server_gateway.h">
+      <Filter>SourceCode</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCode\3rd\mjson\json.h">
+      <Filter>SourceCode\3rd\mjson</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

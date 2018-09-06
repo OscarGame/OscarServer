@@ -145,12 +145,19 @@
     <ClCompile Include="SourceCode\3rd\crypt\base64_encoder.c" />
     <ClCompile Include="SourceCode\3rd\crypt\sha1.c" />
     <ClCompile Include="SourceCode\3rd\http_parser\http_parser.c" />
+    <ClCompile Include="SourceCode\3rd\mjson\json.c" />
     <ClCompile Include="SourceCode\main.c" />
+    <ClCompile Include="SourceCode\net_io\net_iocp_win.c" />
+    <ClCompile Include="SourceCode\net_io\tcp_session.c" />
+    <ClCompile Include="SourceCode\server_gateway.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SourceCode\3rd\crypt\base64_encoder.h" />
     <ClInclude Include="SourceCode\3rd\crypt\sha1.h" />
     <ClInclude Include="SourceCode\3rd\http_parser\http_parser.h" />
+    <ClInclude Include="SourceCode\3rd\mjson\json.h" />
+    <ClInclude Include="SourceCode\net_io\tcp_session.h" />
+    <ClInclude Include="SourceCode\server_gateway.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
