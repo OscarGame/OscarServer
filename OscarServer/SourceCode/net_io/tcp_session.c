@@ -38,7 +38,7 @@ void init_session_manager(int socket_type, int protocal_type)
 	session_manager.protocal_type = protocal_type;
 
 	session_manager.cache_mem = (struct session*)my_malloc(MAX_SESSION_NUM * sizeof(struct session));
-	memset(&session_manager.cache_mem, 0, MAX_SESSION_NUM * sizeof(struct session));
+	memset(session_manager.cache_mem, 0, MAX_SESSION_NUM * sizeof(struct session));
 
 	for (int i = 0; i < MAX_SESSION_NUM; i++) {
 		session_manager.cache_mem[i].next = session_manager.free_list;
@@ -155,6 +155,8 @@ void clear_offline_session(struct session*s)
 			walk = s->next;
 			s->next = NULL;
 			
+
+
 			s->c_sock = 0;
 			cache_free(s);
 		}

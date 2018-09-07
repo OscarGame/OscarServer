@@ -1,6 +1,16 @@
 
 #include "3rd/mjson/json.h"
 
+enum {
+	TCP_SOCKET_IO = 0,  // tcp socket
+	WEB_SOCKET_IO = 1,  // websocket
+};
+
+enum {
+	BIN_PROTOCAL = 0, // 二进制协议
+	JSON_PROTOCAL = 1, // json协议
+};
+
 struct service_module {
 	int stype; // 服务的类型，系统根据这个服务的类型来讲消息分发给对应的服务
 
