@@ -215,6 +215,10 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 
 }
 
+static void on_json_protocal_recved(struct session* s, struct io_package* io_data)
+{
+	
+}
 void start_server(char* ip, int port, int socket_type, int protocal_type)
 {
 	init_server_gateway();
@@ -306,7 +310,19 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 		{
 			case IOCP_RECV:
 				io_data->recved += dwTrans;
-				on_bin_protocal_recved(s,io_data);
+				if (socket_type == TCP_SOCKET_IO)
+				{
+					if (protocal_type == JSON_PROTOCAL)
+					{
+						on_json_protocal_recved(s, io_data);
+					}
+					else if (protocal_type == BIN_PROTOCAL)
+					{
+						on_bin_protocal_recved(s,io_data);
+					}
+
+				}
+				
 				
 
 				break;
