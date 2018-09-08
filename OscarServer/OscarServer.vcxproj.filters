@@ -28,6 +28,9 @@
     <Filter Include="SourceCode\3rd\mjson">
       <UniqueIdentifier>{2aed4e0c-6a75-4b81-bf18-56add5e15072}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SourceCode\test">
+      <UniqueIdentifier>{0d93d3ac-dc15-4d5e-aefb-3bec6ade3792}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SourceCode\3rd\crypt\base64_encoder.c">
@@ -54,6 +57,18 @@
     <ClCompile Include="SourceCode\3rd\mjson\json.c">
       <Filter>SourceCode\3rd\mjson</Filter>
     </ClCompile>
+    <ClCompile Include="SourceCode\test\game_protocol.c">
+      <Filter>SourceCode\test</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\test\LinkTest.c">
+      <Filter>SourceCode\test</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\test\reallocTest.c">
+      <Filter>SourceCode\test</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\test\TCP_IOCP_Binary_Test.c">
+      <Filter>SourceCode\test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SourceCode\3rd\crypt\base64_encoder.h">
@@ -73,6 +88,9 @@
     </ClInclude>
     <ClInclude Include="SourceCode\3rd\mjson\json.h">
       <Filter>SourceCode\3rd\mjson</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCode\test\game_protocol.h">
+      <Filter>SourceCode\test</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

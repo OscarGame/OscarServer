@@ -150,6 +150,10 @@
     <ClCompile Include="SourceCode\net_io\net_iocp_win.c" />
     <ClCompile Include="SourceCode\net_io\tcp_session.c" />
     <ClCompile Include="SourceCode\server_gateway.c" />
+    <ClCompile Include="SourceCode\test\game_protocol.c" />
+    <ClCompile Include="SourceCode\test\LinkTest.c" />
+    <ClCompile Include="SourceCode\test\reallocTest.c" />
+    <ClCompile Include="SourceCode\test\TCP_IOCP_Binary_Test.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SourceCode\3rd\crypt\base64_encoder.h" />
@@ -158,6 +162,7 @@
     <ClInclude Include="SourceCode\3rd\mjson\json.h" />
     <ClInclude Include="SourceCode\net_io\tcp_session.h" />
     <ClInclude Include="SourceCode\server_gateway.h" />
+    <ClInclude Include="SourceCode\test\game_protocol.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

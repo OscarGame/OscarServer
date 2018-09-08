@@ -24,7 +24,13 @@ int main(int argc, char** argv)
 	// start_tcp_listener(5150);
 	//start_server(5150);
 	
-	start_server("127.0.0.1", 8000, TCP_SOCKET_IO,BIN_PROTOCAL);
+	/*char* a = "sdfsdf";
+	char* b = malloc(strlen(a)+1 );
+
+	memcpy(b,a, strlen(a) + 1);
+	*/
+
+	start_server("127.0.0.1", 8000, TCP_SOCKET_IO, BIN_PROTOCAL);
 
 	//char* conet = "oscar=";
 	//printf("conet = %s",conet);

@@ -101,7 +101,10 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 	while (io_data->recved)
 	{
 		int pkg_size = 0;
-		if (get_recv_header_size(io_data->pkg, io_data->recved, &pkg_size) != 0)
+
+		unsigned char* pkg_data = io_data->long_pkg == NULL ? io_data->pkg : io_data->long_pkg;
+
+		if (get_recv_header_size(pkg_data, io_data->recved, &pkg_size) != 0)
 		{
 			printf("IOCP_RECV package size error");
 			//一个数据头都没有收到说明不足以去解析，所以继续投递，但是有假如收到了一个或者几个字节
@@ -115,6 +118,7 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 			int ret = WSARecv(s->c_sock, &(io_data->wsabuffer),
 				1, &dwRecv, &dwFlags,
 				&(io_data->overlapped), NULL);
+
 			break;
 		}
 		else
@@ -165,17 +169,17 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 					continue;
 				}
 				*/
-				//if (io_data->recved == 0) { // 重新投递请求
-				//	DWORD dwRecv = 0;
-				//	DWORD dwFlags = 0;
-				//	io_data->wsabuffer.buf = io_data->pkg + io_data->recved;
-				//	io_data->wsabuffer.len = MAX_RECV_SIZE - io_data->recved;
+				if (io_data->recved == 0) { // 重新投递请求
+					DWORD dwRecv = 0;
+					DWORD dwFlags = 0;
+					io_data->wsabuffer.buf = io_data->pkg + io_data->recved;
+					io_data->wsabuffer.len = MAX_RECV_SIZE - io_data->recved;
 
-				//	int ret = WSARecv(s->c_sock, &(io_data->wsabuffer),
-				//		1, &dwRecv, &dwFlags,
-				//		&(io_data->overlapped), NULL);
-				//	break;
-				//}
+					int ret = WSARecv(s->c_sock, &(io_data->wsabuffer),
+						1, &dwRecv, &dwFlags,
+						&(io_data->overlapped), NULL);
+					break;
+				}
 
 
 			}  //没有接收完一个包
@@ -187,16 +191,12 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 				{
 					if (io_data->long_pkg == NULL)
 					{
-						io_data->long_pkg = my_malloc(pkg_size + 1);
+						io_data->long_pkg = my_malloc(pkg_size - io_data->recved);
+						//io_data->long_pkg = my_malloc(pkg_size + 1);
 						memcpy(io_data->long_pkg,io_data->pkg,io_data->recved);
 					}
 					recv_buffer = io_data->long_pkg;
 				}
-
-				/*char* content = malloc(io_data->recved);
-				memcpy(content, io_data->pkg + 2, io_data->recved);
-				printf("IOCP_RECV package content = %s \n", content);*/
-
 
 				DWORD dwRecv = 0;
 				DWORD dwFlags = 0;
@@ -215,10 +215,117 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 
 }
 
+static int read_pkg_tail(unsigned char* pkg_data,int recv,int*pkg_size)
+{
+	if (recv < 2)
+	{
+		return -1;
+	}
+
+	int i = 0;
+	*pkg_size = 0;
+	while (i < recv -1)
+	{
+		if (pkg_data[i] == '\r' && pkg_data[i+1] == '\n')
+		{
+			*pkg_size = i + 2;
+			return 0;
+		}
+		i++;
+	}
+
+	return -1;
+}
+
 static void on_json_protocal_recved(struct session* s, struct io_package* io_data)
 {
+	while (io_data->recved > 0)
+	{
+		int pkg_size = 0;
+		unsigned char* pkg_data = io_data->long_pkg == NULL ? io_data->pkg : io_data->long_pkg;
+		if (read_pkg_tail(pkg_data, io_data->recved, &pkg_size) != 0)
+		{
+			//数据包没有接受完成
+
+			if (io_data->recved >= MAX_PKG_SIZE) { // 超过了数据包,close session
+				close_session(s);
+				my_free(io_data);
+				break;
+			}
+
+
+			if (io_data->recved >= io_data->max_pkg_len)
+			{
+				int alloc_len = io_data->recved * 2;
+				alloc_len == (alloc_len > MAX_PKG_SIZE) ? MAX_PKG_SIZE : alloc_len;
+
+				if (io_data->long_pkg ==NULL)
+				{
+					io_data->long_pkg = my_malloc(alloc_len +1);
+					memcpy(io_data->long_pkg,io_data->pkg,io_data->recved);
+				}
+				else
+				{
+					//my_realloc 不用删除旧的iodata->long_pkg
+					io_data->long_pkg = my_realloc(io_data->long_pkg,alloc_len +1);
+				}
+
+				io_data->max_pkg_len = alloc_len;
+
+				DWORD dwRecv = 0;
+				DWORD dwFlags = 0;
+				unsigned char* buf = (io_data->long_pkg != NULL) ? io_data->long_pkg : io_data->pkg;
+				io_data->wsabuffer.buf = buf + io_data->recved;
+				io_data->wsabuffer.len = io_data->max_pkg_len - io_data->recved;
+				int ret = WSARecv(s->c_sock, &(io_data->wsabuffer),
+					1, &dwRecv, &dwFlags,
+					&(io_data->overlapped), NULL);
+				break;
+			}
+			
+		}
+
+		//接收完毕
+		char* content = malloc((size_t)pkg_size);
+		memcpy(content, pkg_data, pkg_size);
+		printf("IOCP_RECV Json package content = %s \n", content);
+
+
+		if (io_data->recved > pkg_size) {
+			memmove(pkg_data, pkg_data + pkg_size, io_data->recved - pkg_size);
+		}
+		io_data->recved -= pkg_size;
 	
+		if (io_data->recved == 0) { // IOCP的请求
+			DWORD dwRecv = 0;
+			DWORD dwFlags = 0;
+			if (io_data->long_pkg != NULL) {
+				my_free(io_data->long_pkg);
+				io_data->long_pkg = NULL;
+
+			}
+
+			io_data->max_pkg_len = MAX_RECV_SIZE;
+			io_data->wsabuffer.buf = io_data->pkg + io_data->recved;
+			io_data->wsabuffer.len = io_data->max_pkg_len - io_data->recved;
+
+			int ret = WSARecv(s->c_sock, &(io_data->wsabuffer),
+				1, &dwRecv, &dwFlags,
+				&(io_data->overlapped), NULL);
+			break;
+		}
+		
+
+		
+
+
+
+	}
 }
+
+
+
+
 void start_server(char* ip, int port, int socket_type, int protocal_type)
 {
 	init_server_gateway();
