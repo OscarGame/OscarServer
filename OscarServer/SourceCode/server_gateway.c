@@ -1,6 +1,6 @@
 
 #include "server_gateway.h"
-
+#include "game_stype.h"
 #define MAX_SERVICES 512
 
 
@@ -20,13 +20,32 @@ void exit_server_gateway()
 {
 }
 
+
+void on_bin_protocal_recv_entry(struct session* s, unsigned char* data, int len)
+{
+	int stype = ((data[0]) | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
+	if (gateway.services[stype] && gateway.services[stype]->on_bin_protocal_recv)
+	{
+		int ret = gateway.services[stype]->on_bin_protocal_recv(gateway.services[stype]->module_data, s, data, len);
+		if (!ret)
+		{
+			close_session(s);
+		}
+	}
+}
+
+
+
 void register_service(int stype,struct service_module* module)
 {
-	if (stype <= 0 || stype >= MAX_SERVICES)
+	if (stype >= 0 || stype <= MAX_SERVICES)
 	{
+		printf("register_service");
 		gateway.services[stype] = module;
 	}
 }
+
+
 
 void on_json_protocal_recv_entry(struct session* s, unsigned char* data, int len)
 {

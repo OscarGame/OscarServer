@@ -83,6 +83,28 @@ static struct session* cache_alloc()
 	return s;
 }
 
+struct session* My_save_session(int c_sock, SOCKET sock, char* ip, int port)
+{
+	struct session*s = cache_alloc();
+	s->c_sock = c_sock;
+	s->c_port = port;
+
+	int len = strlen(ip);
+	if (len >= 32)
+	{
+		len = 31;
+	}
+
+	strncpy(s->c_ip, ip, len);
+	s->c_ip[len] = 0;
+
+	s->socket = sock;
+
+	s->next = session_manager.online_session;
+	session_manager.online_session = s;
+
+	return s;
+}
 
 struct session* save_session(int c_sock, char* ip , int port)
 {
@@ -137,6 +159,8 @@ void close_session(struct session*s)
 	session_manager.has_removed = 1;
 
 	printf("client %s:%d exit\n", s->c_ip, s->c_port);
+
+
 }
 
 void clear_offline_session(struct session*s)
@@ -155,7 +179,10 @@ void clear_offline_session(struct session*s)
 			walk = s->next;
 			s->next = NULL;
 			
-
+			if (s->c_sock != 0) {
+				shutdown(s->c_sock, 2); // 关闭客户端，有时出现close当机的问题。
+				closesocket(s->c_sock);
+			}
 
 			s->c_sock = 0;
 			cache_free(s);
@@ -167,4 +194,16 @@ void clear_offline_session(struct session*s)
 	}
 	
 	session_manager.has_removed = 0;
+}
+
+
+void
+binary_session_send(struct session* s,
+	const char* body, int len) {
+	char* send_buf = malloc(len + 2);
+	memcpy(send_buf + 2, body, len);
+
+	*(unsigned short*)send_buf = (len + 2);
+	send(s->c_sock, send_buf, len + 2, 0);
+	free(send_buf);
 }

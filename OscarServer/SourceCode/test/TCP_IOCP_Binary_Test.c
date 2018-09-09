@@ -1,4 +1,3 @@
-
 //#include <stdio.h>
 //#include <string.h>
 //#include <stdlib.h>
@@ -20,7 +19,6 @@
 //
 //
 //int main(int argc, char** argv) {
-//
 //#ifdef WIN32
 //	WORD wVersionRequested;
 //	WSADATA wsaData;
@@ -53,58 +51,41 @@
 //		return -1;
 //	}
 //
-//	// send(s, "hello", 5, 0);
 //
-//	int isSendBin = 1;
-//	if (isSendBin)
+//	char send_buf[4096];
+//	int len = 0;
+//	if (gets(send_buf))
 //	{
 //
-//		char send_buf[4096];
-//		sprintf(send_buf, "%s", "hello oscarhello oscarhello oscarhello oscarhello oscar====");
-//		int len = strlen(send_buf);
-//		unsigned char* pkg_ptr = malloc(len + 2);
-//		memcpy(pkg_ptr + 2, send_buf, len);
-//		pkg_ptr[0] = ((len + 2) & 0x000000ff);
-//		pkg_ptr[1] = ((len + 2) & 0x0000ff00) >> 8;
-//		send(s, pkg_ptr, len + 2, 0);
-//	}
-//	else
-//	{
-//		//send json
-//		char send_buf[4096];
-//		sprintf(send_buf, "%s", "{helloWorldtestqqqqqqsssss}\r\n");
-//		int len = strlen(send_buf);
-//		send(s, send_buf, 16, 0);
-//		Sleep(1);
-//		send(s, send_buf + 16, len - 16, 0);
-//		Sleep(1);
-//
-//	}
-//
-//	struct user_login_req req;
-//	req.channel = 1;
-//	req.uname = "xiaohong";
-//	req.upsd = "123456"; // MD5
+//		// send(s, "hello", 5, 0);
+//		struct user_login_req req;
+//		req.channel = 1;
+//		req.uname = "xiaohong";
+//		req.upsd = "123456"; // MD5
 //
 //
 //
-//						 /*int len = command_login_pack(USER_LOGION, &req, send_buf + 2);
-//						 (*(unsigned short*)send_buf) = (len + 2);
-//						 send(s, send_buf, len + 2, 0);
-//						 */
-//
+//		len = command_login_pack(USER_LOGION, &req, send_buf + 2);
+//		(*(unsigned short*)send_buf) = (len + 2);
 //
 //#if 1
-//
+//		send(s, send_buf, 10, 0);
+//		Sleep(1);
+//		send(s, send_buf + 10, len + 2 - 10, 0);
+//		Sleep(1);
 //#else
-//	send(s, send_buf, len, 0);
+//		send(s, send_buf, len + 2, 0);
 //#endif
-//	/*len = recv(s, send_buf, 4096, 0);
 //
+//
+//	}
+//
+//	Sleep(500);
+//	len = recv(s, send_buf, 4096, 0);
 //	struct user_login_respons respons;
 //	login_respons_unpack(send_buf + 2 + 4, len - 2 - 4, &respons);
 //
-//	printf("respons = %s\n", respons.name);*/
+//	printf("respons = %s\n", respons.name);
 //
 //	printf("connect success\n");
 //	system("pause");
@@ -118,4 +99,17 @@
 //#endif
 //	return 0;
 //}
-
+//
+///*
+//send json
+//
+////		char send_buf[4096];
+////		sprintf(send_buf, "%s", "hello oscarhello oscarhello oscarhello oscarhello oscar====");
+////		int len = strlen(send_buf);
+////		unsigned char* pkg_ptr = malloc(len + 2);
+////		memcpy(pkg_ptr + 2, send_buf, len);
+////		pkg_ptr[0] = ((len + 2) & 0x000000ff);
+////		pkg_ptr[1] = ((len + 2) & 0x0000ff00) >> 8;
+////		send(s, pkg_ptr, len + 2, 0);
+//
+//*/

@@ -1,1 +1,8 @@
-﻿
+﻿  Server.cpp
+d:\vulkan\server\oscarserver\serversendmsg\server.cpp(240): warning C4018: “<”: 有符号/无符号不匹配
+  Client.cpp
+d:\vulkan\server\oscarserver\serversendmsg\client.cpp(45): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+  正在生成代码...
+  ServerSendMsg.vcxproj -> D:\Vulkan\Server\OscarServer\Debug\ServerSendMsg.exe
+  ServerSendMsg.vcxproj -> D:\Vulkan\Server\OscarServer\Debug\ServerSendMsg.pdb (Full PDB)

@@ -14,6 +14,9 @@ enum {
 struct service_module {
 	int stype; // 服务的类型，系统根据这个服务的类型来讲消息分发给对应的服务
 
+	void  // 模块初始化入口
+	(*init_service_module)(struct service_module* module);
+
 	int  // 如果不为0，底层会关闭掉这个socket;
 	(*on_bin_protocal_recv)(void* module_data, struct session* s,
 		unsigned char* data, int len);
@@ -29,7 +32,10 @@ struct service_module {
 };
 
 
+void register_service(int stype, struct service_module* module);
+
 void init_server_gateway();
+
 void exit_server_gateway();
 
 void start_server(char* ip, int port, int socket_type, int protocal_type);

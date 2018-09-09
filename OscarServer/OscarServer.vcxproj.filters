@@ -31,6 +31,9 @@
     <Filter Include="SourceCode\test">
       <UniqueIdentifier>{0d93d3ac-dc15-4d5e-aefb-3bec6ade3792}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SourceCode\gateway_server">
+      <UniqueIdentifier>{2dc83b30-a6da-4c29-83f5-24497607ed97}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SourceCode\3rd\crypt\base64_encoder.c">
@@ -57,9 +60,6 @@
     <ClCompile Include="SourceCode\3rd\mjson\json.c">
       <Filter>SourceCode\3rd\mjson</Filter>
     </ClCompile>
-    <ClCompile Include="SourceCode\test\game_protocol.c">
-      <Filter>SourceCode\test</Filter>
-    </ClCompile>
     <ClCompile Include="SourceCode\test\LinkTest.c">
       <Filter>SourceCode\test</Filter>
     </ClCompile>
@@ -68,6 +68,15 @@
     </ClCompile>
     <ClCompile Include="SourceCode\test\TCP_IOCP_Binary_Test.c">
       <Filter>SourceCode\test</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\net_io\game_protocol.c">
+      <Filter>SourceCode\net_io</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\gateway_server\from_client.c">
+      <Filter>SourceCode\gateway_server</Filter>
+    </ClCompile>
+    <ClCompile Include="SourceCode\gateway_server\GW_Config.c">
+      <Filter>SourceCode\gateway_server</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -89,8 +98,17 @@
     <ClInclude Include="SourceCode\3rd\mjson\json.h">
       <Filter>SourceCode\3rd\mjson</Filter>
     </ClInclude>
-    <ClInclude Include="SourceCode\test\game_protocol.h">
-      <Filter>SourceCode\test</Filter>
+    <ClInclude Include="SourceCode\net_io\game_protocol.h">
+      <Filter>SourceCode\net_io</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCode\gateway_server\from_client.h">
+      <Filter>SourceCode\gateway_server</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCode\gateway_server\GW_Config.h">
+      <Filter>SourceCode\gateway_server</Filter>
+    </ClInclude>
+    <ClInclude Include="SourceCode\game_stype.h">
+      <Filter>SourceCode</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

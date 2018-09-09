@@ -17,7 +17,7 @@ https://blog.csdn.net/u010025913/article/details/24467351
 #define my_realloc realloc
 
 #define MAX_PKG_SIZE ((1<<16) - 1)
-#define MAX_RECV_SIZE 8//2047
+#define MAX_RECV_SIZE 16//2047
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "odbc32.lib")
@@ -25,6 +25,8 @@ https://blog.csdn.net/u010025913/article/details/24467351
 
 #include "../server_gateway.h"
 #include "tcp_session.h"
+#include "../net_io/game_protocol.h"
+
 
 static LPFN_ACCEPTEX lpfnAcceptEx;
 static LPFN_GETACCEPTEXSOCKADDRS lpfnGetAcceptExSockaddrs;
@@ -47,6 +49,8 @@ enum {
 	IOCP_WRITE,
 };
 
+
+extern void on_bin_protocal_recv_entry(struct session* s, unsigned char* data, int len);
 
 static void post_accept(SOCKET l_sock,HANDLE iocp,struct io_package* pkg)
 {
@@ -94,16 +98,33 @@ static int get_recv_header_size(unsigned char*pkgContent,int len,int *pkgSize)
 	return 0;
 }
 
+int isLoop;
+
+void trim(char *strIn, char *strOut) {
+
+	int i, j;
+
+	i = 0;
+
+	j = strlen(strIn) - 1;
+
+	while (strIn[i] == ' ')
+		++i;
+
+	while (strIn[j] == ' ')
+		--j;
+	strncpy(strOut, strIn + i, j - i + 1);
+	strOut[j - i + 1] = '\0';
+}
+
 static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 {
-	printf("IOCP_RECV io_data->recved size = %d\n", io_data->recved);
+	printf("IOCP_RECV on_bin_protocal_recved io_data->recved size = %d\n", io_data->recved);
 
 	while (io_data->recved)
 	{
 		int pkg_size = 0;
-
 		unsigned char* pkg_data = io_data->long_pkg == NULL ? io_data->pkg : io_data->long_pkg;
-
 		if (get_recv_header_size(pkg_data, io_data->recved, &pkg_size) != 0)
 		{
 			printf("IOCP_RECV package size error");
@@ -134,23 +155,50 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 			if (io_data->recved >= pkg_size)
 			{
 
-				printf("IOCP_RECV package size = %d \n", pkg_size);
-				char* content = malloc((size_t)pkg_size);
-
+				printf("IOCP_RECV on_bin_protocal_recved package size = %d \n", pkg_size);
+				/*
+				
+				char* content = malloc((size_t)pkg_size-2);
 				//io_data->pkg 不是刚才指定的long_pkg??我让wsabuffer.buf 指向了pkg_long 
+				//这里+2的意思是要移动两个位置，因为这两个位置是包的大小
 				if (io_data->long_pkg != NULL)
 				{
-					memcpy(content, io_data->long_pkg + 2, pkg_size);
+					memcpy(content, io_data->long_pkg+2, pkg_size-2);
 				}
 				else
 				{
-					memcpy(content, io_data->pkg + 2, pkg_size);
+					memcpy(content, io_data->pkg+2, pkg_size-2);
 				}
 				printf("IOCP_RECV package content = %s \n", content);
+				*/
 
+				/*
+				在这里进行数据的解析
+				struct user_login_req req;
+				command_login_unpack(pkg_data+2+4, pkg_size-2-4, &req);
+
+				// 查数据库，验证密码，获取用户资料；
+				printf("user login %s:%s %d\n", req.uname, req.upsd, req.channel);
+
+				
+				struct user_login_respons res;
+				res.level = 1;
+				res.status = 1; // OK
+				res.name = "小红";
+				// end 
+
+				char send_buf[256];
+				int send_len = login_respons_pack(USER_LOGION, &res, send_buf);
+
+				binary_session_send(s, send_buf, send_len);
+
+				*/
+
+				//前面两个字节是数据包的大小，
+				on_bin_protocal_recv_entry(s, pkg_data + 2, pkg_size - 2);
 				if (io_data->recved > pkg_size)
 				{
-					memmove(io_data->pkg,io_data->pkg + pkg_size,io_data->recved - pkg_size);
+					memmove(io_data->pkg, io_data->pkg + pkg_size, io_data->recved - pkg_size);
 				}
 
 				io_data->recved -= pkg_size;
@@ -161,14 +209,7 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 					io_data->long_pkg = NULL;
 				}
 
-				//这段不需要，如果要的话，在下面这里会有错
-				/*
-				int ret = GetQueuedCompletionStatus(iocp, &dwTrans, (LPDWORD)&s, (LPOVERLAPPED*)&io_data, WSA_INFINITE);
-				if (ret == 0) {
-					printf("===iocp error===");
-					continue;
-				}
-				*/
+
 				if (io_data->recved == 0) { // 重新投递请求
 					DWORD dwRecv = 0;
 					DWORD dwFlags = 0;
@@ -191,8 +232,12 @@ static void on_bin_protocal_recved(struct session* s,struct io_package* io_data)
 				{
 					if (io_data->long_pkg == NULL)
 					{
-						io_data->long_pkg = my_malloc(pkg_size - io_data->recved);
-						//io_data->long_pkg = my_malloc(pkg_size + 1);
+
+						//pkg_size - io_data->recved 只是还没有收完的大小，但是这个long_pkg的大小需要是整个包的大小，
+						//所以这里可以理解成一部分装当前的，一部分装剩余的，
+						//这里+1的逻辑不是很清楚了，反正最后也释放了
+						//io_data->long_pkg = my_malloc(pkg_size - io_data->recved);
+						io_data->long_pkg = my_malloc(pkg_size + 1);
 						memcpy(io_data->long_pkg,io_data->pkg,io_data->recved);
 					}
 					recv_buffer = io_data->long_pkg;
@@ -328,7 +373,7 @@ static void on_json_protocal_recved(struct session* s, struct io_package* io_dat
 
 void start_server(char* ip, int port, int socket_type, int protocal_type)
 {
-	init_server_gateway();
+
 	init_session_manager(socket_type, protocal_type);
 
 	WSADATA data;
@@ -338,6 +383,7 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 	SOCKET l_sock = INVALID_SOCKET;
 	HANDLE iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (iocp == NULL) {
+		printf("iocp error\n");
 		goto failed;
 	}
 
@@ -347,6 +393,7 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 
 	l_sock = socket(AF_INET,SOCK_STREAM,0);
 	if (l_sock == INVALID_SOCKET) {
+		printf("l_sock error\n");
 		goto failed;
 	}
 
@@ -358,11 +405,13 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 
 	if (bind(l_sock,(struct sockaddr*)&s_address,sizeof(s_address)) != 0 )
 	{
+		printf("bind error\n");
 		goto failed;
 
 	}
 
 	if (listen(l_sock, SOMAXCONN) != 0) {
+		printf("listen error\n");
 		goto failed;
 	}
 
@@ -398,6 +447,7 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 	while (1)
 	{
 		//clear_offline_session();
+
 		s = NULL;
 		io_data = NULL;
 		int ret = GetQueuedCompletionStatus(iocp, &dwTrans, (LPDWORD)&s, (LPOVERLAPPED*)&io_data, WSA_INFINITE);
@@ -417,6 +467,8 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 		{
 			case IOCP_RECV:
 				io_data->recved += dwTrans;
+
+			
 				if (socket_type == TCP_SOCKET_IO)
 				{
 					if (protocal_type == JSON_PROTOCAL)
@@ -450,6 +502,8 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 						(struct sockaddr**)&l_addr, &l_len,
 						(struct sockaddr**)&r_addr, &r_len);
 
+					//struct session* s = My_save_session(client_fd, inet_ntoa(r_addr->sin_addr), ntohs(r_addr->sin_port));
+
 					struct session* s = save_session(client_fd, inet_ntoa(r_addr->sin_addr), ntohs(r_addr->sin_port));
 					CreateIoCompletionPort((HANDLE)client_fd, iocp, (DWORD)s, 0);
 					post_recv(client_fd, iocp);
@@ -461,7 +515,11 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 
 	}
 
-failed:
+
+
+
+
+
 	if (iocp != NULL) {
 		CloseHandle(iocp);
 	}
@@ -474,5 +532,23 @@ failed:
 	exit_server_gateway();
 
 	WSACleanup();
+
+failed:
+		exit_session_manager();
+		exit_server_gateway();
+//	
+//	if (l_sock != INVALID_SOCKET) {
+//		closesocket(l_sock);
+//	}
+//
+//	if (iocp != NULL) {
+//		CloseHandle(iocp);
+//	}
+//
+//
+//	exit_session_manager();
+//	exit_server_gateway();
+//
+//	WSACleanup();
 
 }

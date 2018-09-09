@@ -53,7 +53,7 @@ login_respons_pack(int cmd_type, struct user_login_respons* respons,
 	*(int*)walk = respons->status;;
 	walk += 4;
 	
-	sprintf("%s", walk);
+	sprintf(walk, "%s", respons->name);
 	walk += (strlen(walk) + 1);
 
 	*(int*)walk = respons->level;

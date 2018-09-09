@@ -8,6 +8,10 @@ d:\vulkan\server\oscarserver\oscarserver\debug\main.obj
 d:\vulkan\server\oscarserver\oscarserver\debug\net_iocp_win.obj
 d:\vulkan\server\oscarserver\oscarserver\debug\tcp_session.obj
 d:\vulkan\server\oscarserver\oscarserver\debug\server_gateway.obj
+d:\vulkan\server\oscarserver\oscarserver\debug\game_protocol.obj
+d:\vulkan\server\oscarserver\oscarserver\debug\linktest.obj
+d:\vulkan\server\oscarserver\oscarserver\debug\realloctest.obj
+d:\vulkan\server\oscarserver\oscarserver\debug\tcp_iocp_binary_test.obj
 d:\vulkan\server\oscarserver\debug\oscarserver.ilk
 d:\vulkan\server\oscarserver\debug\oscarserver.exe
 d:\vulkan\server\oscarserver\debug\oscarserver.pdb
