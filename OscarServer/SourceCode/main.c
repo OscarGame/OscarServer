@@ -28,7 +28,8 @@ int main(int argc, char** argv)
 
 	register_from_client_module(STYPE_CENTER);
 
-	start_server("127.0.0.1", 8000, TCP_SOCKET_IO, BIN_PROTOCAL);
+	//WEB_SOCKET_IO    TCP_SOCKET_IO
+	start_server("127.0.0.1", 8000, WEB_SOCKET_IO, BIN_PROTOCAL);
 
 	return 0;
 }

@@ -27,6 +27,7 @@ https://blog.csdn.net/u010025913/article/details/24467351
 #include "tcp_session.h"
 #include "../net_io/game_protocol.h"
 
+#include "../3rd/http_parser/http_parser.h"
 
 static LPFN_ACCEPTEX lpfnAcceptEx;
 static LPFN_GETACCEPTEXSOCKADDRS lpfnGetAcceptExSockaddrs;
@@ -369,6 +370,78 @@ static void on_json_protocal_recved(struct session* s, struct io_package* io_dat
 }
 
 
+// 解析到头的回掉函数
+static char header_key[64];
+static char client_ws_key[128];
+static int has_client_key = 0;
+static int on_header_field(http_parser*p,const char *at,size_t length)
+{
+	length = (length < 63) ? length : 63;
+	strncpy(header_key, at, length);
+	header_key[length] = 0;
+	return 0;
+}
+
+static int on_header_value(http_parser* p, const char *at,size_t length)
+{
+	if (strcmp(header_key, "Sec-WebSocket-Key") != 0) {
+		return 0;
+	}
+	length = (length < 127) ? length : 127;
+	strncpy(client_ws_key,at,length);
+	client_ws_key[length] = 0;
+	has_client_key = 1;
+
+	return 0;
+}
+
+static int process_ws_shake_hand(struct session* _session, struct io_package* io_data,
+	char* ip, int port)
+{
+	http_parser p;
+	http_parser_init(&p,HTTP_REQUEST);
+
+	http_parser_settings setting;
+	http_parser_settings_init(&setting);
+	setting.on_header_field = on_header_field;
+	setting.on_header_value = on_header_value;
+
+	has_client_key = 0;
+	http_parser_execute(&p,&_session,io_data->pkg, io_data->recved);
+
+	if (has_client_key == 0)
+	{
+		_session->is_shake_hand = 0;
+		if (io_data->recved >= MAX_RECV_SIZE)
+		{
+			closesocket(_session->c_sock);
+			my_free(io_data);
+		}
+
+		
+
+		if (io_data->long_pkg != NULL)
+		{
+			my_free(io_data->long_pkg);
+			io_data->long_pkg = NULL;
+		}
+		DWORD dwRecv = 0, dwFlags = 0;
+		io_data->max_pkg_len = MAX_RECV_SIZE;
+		io_data->wsabuffer.buf = io_data->pkg + io_data->recved;
+		io_data->wsabuffer.len = io_data->max_pkg_len - io_data->recved;
+
+		int ret = WSARecv(_session->c_sock,&io_data->wsabuffer,1,&dwRecv,&dwFlags,&io_data->overlapped,NULL);
+
+		return -1;
+	}
+
+	static char key_migic[256];
+	const char* migic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+	sprintf(key_migic,"%s%s",client_ws_key,migic);
+
+	return 0;
+
+}
 
 
 void start_server(char* ip, int port, int socket_type, int protocal_type)
@@ -480,6 +553,13 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 						on_bin_protocal_recved(s,io_data);
 					}
 
+				}
+				else if (socket_type == WEB_SOCKET_IO)
+				{
+					if (s->is_shake_hand == 0)
+					{
+						process_ws_shake_hand(s, io_data, ip, port);
+					}
 				}
 				
 				
