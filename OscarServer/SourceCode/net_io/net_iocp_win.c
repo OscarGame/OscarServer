@@ -17,7 +17,7 @@ https://blog.csdn.net/u010025913/article/details/24467351
 #define my_realloc realloc
 
 #define MAX_PKG_SIZE ((1<<16) - 1)
-#define MAX_RECV_SIZE 16//2047
+#define MAX_RECV_SIZE 2047//2047
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "odbc32.lib")
@@ -28,6 +28,8 @@ https://blog.csdn.net/u010025913/article/details/24467351
 #include "../net_io/game_protocol.h"
 
 #include "../3rd/http_parser/http_parser.h"
+#include "../3rd/crypt/sha1.h"
+#include "../3rd/crypt/base64_encoder.h"
 
 static LPFN_ACCEPTEX lpfnAcceptEx;
 static LPFN_GETACCEPTEXSOCKADDRS lpfnGetAcceptExSockaddrs;
@@ -49,6 +51,14 @@ enum {
 	IOCP_RECV,
 	IOCP_WRITE,
 };
+
+
+char *wb_accept = "HTTP/1.1 101 Switching Protocols\r\n" \
+"Upgrade:websocket\r\n" \
+"Connection: Upgrade\r\n" \
+"Sec-WebSocket-Accept: %s\r\n" \
+"WebSocket-Location: ws://%s:%d/chat\r\n" \
+"WebSocket-Protocol:chat\r\n\r\n";
 
 
 extern void on_bin_protocal_recv_entry(struct session* s, unsigned char* data, int len);
@@ -374,16 +384,20 @@ static void on_json_protocal_recved(struct session* s, struct io_package* io_dat
 static char header_key[64];
 static char client_ws_key[128];
 static int has_client_key = 0;
+
 static int on_header_field(http_parser*p,const char *at,size_t length)
 {
 	length = (length < 63) ? length : 63;
 	strncpy(header_key, at, length);
 	header_key[length] = 0;
+	printf("on_header_field = %s\n", header_key);
 	return 0;
 }
 
 static int on_header_value(http_parser* p, const char *at,size_t length)
 {
+	
+
 	if (strcmp(header_key, "Sec-WebSocket-Key") != 0) {
 		return 0;
 	}
@@ -392,22 +406,105 @@ static int on_header_value(http_parser* p, const char *at,size_t length)
 	client_ws_key[length] = 0;
 	has_client_key = 1;
 
+	printf("on_header_value = %s\n", client_ws_key);
+
 	return 0;
 }
+
+static void ws_send_data(struct session* s, unsigned char* pkg_data, unsigned int pkg_len) {
+	static unsigned char send_buffer[8096];
+	unsigned int send_len;
+	// 固定的头
+	send_buffer[0] = 0x81;
+	if (pkg_len <= 125) {
+		send_buffer[1] = pkg_len; // 最高bit为0，
+		send_len = 2;
+	}
+	else if (pkg_len <= 0xffff) {
+		send_buffer[1] = 126;
+		send_buffer[2] = (pkg_len & 0x000000ff);
+		send_buffer[3] = ((pkg_len & 0x0000ff00) >> 8);
+		send_len = 4;
+	}
+	else {
+		send_buffer[2] = (pkg_len & 0x000000ff);
+		send_buffer[3] = ((pkg_len & 0x0000ff00) >> 8);
+		send_buffer[4] = ((pkg_len & 0x00ff0000) >> 16);
+		send_buffer[5] = ((pkg_len & 0xff000000) >> 24);
+
+		send_buffer[6] = 0;
+		send_buffer[7] = 0;
+		send_buffer[8] = 0;
+		send_buffer[9] = 0;
+		send_len = 10;
+	}
+	memcpy(send_buffer + send_len, pkg_data, pkg_len);
+	send_len += pkg_len;
+	send(s->c_sock, send_buffer, send_len, 0);
+}
+
+
+static void
+on_ws_recv_data(struct session* s, unsigned char*pkg_data, int pkg_len) 
+{
+	unsigned char* mask = NULL;
+	unsigned char* raw_data = NULL;
+	unsigned int len = pkg_data[1];
+	// 最高的一个bit始终为1,我们要把最高的这个bit,变为0;
+	len = (len & 0x0000007f);
+	if (len <= 125) {
+		mask = pkg_data + 2; // 头字节，长度字节
+	}
+	else if (len == 126) { // 后面两个字节表示长度；
+		len = ((pkg_data[2]) | (pkg_data[3] << 8));
+		mask = pkg_data + 2 + 2;
+	}
+	else if (len == 127) { // 这种情况不用考虑,考虑前4个字节的大小，后面不管;
+		unsigned int low = ((pkg_data[2]) | (pkg_data[3] << 8) | (pkg_data[4] << 16) | (pkg_data[5] << 24));
+		unsigned int hight = ((pkg_data[6]) | (pkg_data[7] << 8) | (pkg_data[8] << 16) | (pkg_data[9] << 24));
+		if (hight != 0) { // 表示后四个字节有数据int存放不了，太大了，我们不要了。
+			return;
+		}
+		len = low;
+		mask = pkg_data + 2 + 8;
+	}
+
+	// mask 固定4个字节，所以后面的数据部分
+	raw_data = mask + 4;
+	printf("data length = %d\n", len);
+	// 还原我们的发送过来的数据;
+	// 从原始数据的第0个字节开始，然后，每个字节与对应的mask进行异或，得到真实的数据。
+	// 由于mask只有4个字节，所以mask循环重复使用;(0, 1, 2, 3, 0, 1, 2, 3);
+	static unsigned char recv_buf[8096];
+	for (unsigned int i = 0; i < len; i++) {
+		recv_buf[i] = raw_data[i] ^ mask[i % 4]; // mask只有4个字节的长度，所以，要循环使用，如果超出，取余就可以了。
+	}
+	recv_buf[len] = 0;
+	printf("recv data:\n%s\n", recv_buf);
+
+	char* test_str = "Hello I got it!!";
+	ws_send_data(s, test_str, strlen(test_str));
+
+
+
+}
+
 
 static int process_ws_shake_hand(struct session* _session, struct io_package* io_data,
 	char* ip, int port)
 {
-	http_parser p;
-	http_parser_init(&p,HTTP_REQUEST);
+	http_parser httpParser;
+	http_parser_init(&httpParser,HTTP_REQUEST);
 
 	http_parser_settings setting;
 	http_parser_settings_init(&setting);
 	setting.on_header_field = on_header_field;
 	setting.on_header_value = on_header_value;
 
+
 	has_client_key = 0;
-	http_parser_execute(&p,&_session,io_data->pkg, io_data->recved);
+	http_parser_execute(&httpParser,&setting,io_data->pkg, io_data->recved);
+
 
 	if (has_client_key == 0)
 	{
@@ -417,8 +514,6 @@ static int process_ws_shake_hand(struct session* _session, struct io_package* io
 			closesocket(_session->c_sock);
 			my_free(io_data);
 		}
-
-		
 
 		if (io_data->long_pkg != NULL)
 		{
@@ -439,6 +534,40 @@ static int process_ws_shake_hand(struct session* _session, struct io_package* io
 	const char* migic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 	sprintf(key_migic,"%s%s",client_ws_key,migic);
 
+	int shal_size = 0;
+	int base64_len = 0;
+	//uint8_t shal_content[SHA1_DIGEST_SIZE];
+	//crypt_sha1(key_migic, (int)strlen(key_migic),shal_content,&shal_size);
+	char* sha1_content = crypt_sha1(key_migic, strlen(key_migic), &shal_size);
+
+	char* b64_str = base64_encode(sha1_content,shal_size,&base64_len);
+
+	strncpy(key_migic, b64_str, base64_len);
+	key_migic[base64_len] = 0;
+
+	static char accept_buffer[256];
+	sprintf(accept_buffer, wb_accept, key_migic, ip, port);
+	send(_session->c_sock, accept_buffer, (int)strlen(accept_buffer),0);
+
+	_session->is_shake_hand = 1;
+	//free(b64_str);//base64_encode_free
+
+	DWORD dwRecv = 0;
+	DWORD dwFlags = 0;
+	if (io_data->long_pkg != NULL) {
+		my_free(io_data->long_pkg);
+		io_data->long_pkg = NULL;
+
+	}
+
+	io_data->recved = 0;
+	io_data->max_pkg_len = MAX_RECV_SIZE;
+	io_data->wsabuffer.buf = io_data->pkg + io_data->recved;
+	io_data->wsabuffer.len = io_data->max_pkg_len - io_data->recved;
+
+	int ret = WSARecv(_session->c_sock, &(io_data->wsabuffer),
+		1, &dwRecv, &dwFlags,
+		&(io_data->overlapped), NULL);
 	return 0;
 
 }
@@ -558,11 +687,41 @@ void start_server(char* ip, int port, int socket_type, int protocal_type)
 				{
 					if (s->is_shake_hand == 0)
 					{
+						io_data->pkg[dwTrans] = 0;
 						process_ws_shake_hand(s, io_data, ip, port);
+						s->is_shake_hand = 1;
+					}
+					else if (io_data->pkg[0] == 0x81 || io_data->pkg[0] == 0x82) { // 收到我们的客户端端通过websocket发送过来的数据包
+																				   //
+						printf("=================\n");
+						on_ws_recv_data(s, io_data->pkg, dwTrans);
+						printf("=================\n");
+						// end
+
+						DWORD dwRecv = 0;
+						DWORD dwFlags = 0;
+						if (io_data->long_pkg != NULL) {
+							my_free(io_data->long_pkg);
+							io_data->long_pkg = NULL;
+
+						}
+
+						io_data->recved = 0;
+						io_data->max_pkg_len = MAX_RECV_SIZE;
+						io_data->wsabuffer.buf = io_data->pkg + io_data->recved;
+						io_data->wsabuffer.len = io_data->max_pkg_len - io_data->recved;
+
+						int ret = WSARecv(s->c_sock, &(io_data->wsabuffer),
+							1, &dwRecv, &dwFlags,
+							&(io_data->overlapped), NULL);
+
+					}
+					else {
+						close_session(s);
+						free(io_data);
+						continue;
 					}
 				}
-				
-				
 
 				break;
 

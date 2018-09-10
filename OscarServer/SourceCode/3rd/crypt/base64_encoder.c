@@ -58,3 +58,8 @@ base64_encode(const uint8_t* text, int sz, int* out_esz) {
 	*out_esz = encode_sz;
 	return buffer;
 }
+
+void
+base64_encode_free(char* result) {
+	my_free(result);
+}

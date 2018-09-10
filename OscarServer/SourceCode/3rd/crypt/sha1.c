@@ -85,6 +85,7 @@ A million repetitions of "a"
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "sha1.h"
 
 typedef struct {
 	uint32_t state[5];
@@ -92,7 +93,7 @@ typedef struct {
 	uint8_t  buffer[64];
 } SHA1_CTX;
 
-#define SHA1_DIGEST_SIZE 20
+
 
 static void	SHA1_Transform(uint32_t	state[5], const	uint8_t	buffer[64]);
 

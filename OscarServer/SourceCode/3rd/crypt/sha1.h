@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define SHA1_DIGEST_SIZE 20
+
 char*
 crypt_sha1(uint8_t* buffer, int sz, int* e_sz);
 
